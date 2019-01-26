@@ -32,17 +32,18 @@ endif()
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
-#find_package(OpenCV 3.0 REQUIRED)
 find_package(OpenCV 3.0 PATHS /opt/opencv3.2/share/OpenCV REQUIRED)
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
 set(BOOST_PATH /home/mxs/tools/boost_1_63_0)
+
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
+${Pangolin_INCLUDE_DIRS}
 ${BOOST_PATH}/include
 )
 
@@ -128,7 +129,7 @@ target_link_libraries(rgbd_my ${PROJECT_NAME})
 #target_link_libraries(mono_euroc ${PROJECT_NAME})
 
 # Build tools
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/tools)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/)
 add_executable(bin_vocabulary
 tools/bin_vocabulary.cc)
 target_link_libraries(bin_vocabulary ${PROJECT_NAME})
