@@ -45,7 +45,7 @@ public:
 	KeyFrameDatabase();
 
     KeyFrameDatabase(const ORBVocabulary &voc);
-	void set_vocab(ORBVocabulary* pvoc);
+    void set_vocab(ORBVocabulary* pvoc);
    void add(KeyFrame* pKF);
 
    void erase(KeyFrame* pKF);

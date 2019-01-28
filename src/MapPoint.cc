@@ -57,12 +57,11 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     mnId=nNextId++;
 }
 
-MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF) :
-	mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
-	mnBALocalForKF(0), mnFuseCandidateForKF(0), mnLoopPointForKF(0), mnCorrectedByKF(0),
-	mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(static_cast<KeyFrame*>(NULL)), mnVisible(1),
-	mnFound(1), mbBad(false), mpReplaced(NULL), mpMap(pMap),
-	mTrackProjX(0.0f), mTrackProjY(0.0f), mTrackProjXR(0.0f), mbTrackInView(false), mnTrackScaleLevel(1), mTrackViewCos(0.5f)
+MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF):
+    mnFirstKFid(-1), mnFirstFrame(pFrame->mnId), nObs(0), mnTrackReferenceForFrame(0), mnLastFrameSeen(0),
+    mnBALocalForKF(0), mnFuseCandidateForKF(0),mnLoopPointForKF(0), mnCorrectedByKF(0),
+    mnCorrectedReference(0), mnBAGlobalForKF(0), mpRefKF(static_cast<KeyFrame*>(NULL)), mnVisible(1),
+    mnFound(1), mbBad(false), mpReplaced(NULL), mpMap(pMap)
 {
 	Pos.copyTo(mWorldPos);
 	cv::Mat Ow = pFrame->GetCameraCenter();
@@ -247,6 +246,9 @@ void MapPoint::load(Archive & ar, const unsigned int version)
 //    ar & const_cast<bool &> (mbBase);
     ar & const_cast<float &> (mfMinDistance);
     ar & const_cast<float &> (mfMaxDistance);
+#ifdef GBA_FRAME
+    mObservationsF.clear();
+#endif
 }
 
 
@@ -302,7 +304,7 @@ void MapPoint::SetObservations(std::vector<KeyFrame*> spKeyFrames)
         mpRefKF = static_cast<KeyFrame*>(NULL);
 
         cout << "refernce KF - " << kfRef_id << "is not found for mappoint " << mnId << endl;
-
+        this->SetBadFlag();
         // Dummy KF
         //mpRefKF = new KeyFrame();
     }
@@ -363,6 +365,24 @@ void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
         nObs++;
 }
 
+#ifdef GBA_FRAME
+void MapPoint::AddObservationF(Frame* pF, size_t idx)
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    if(mObservationsF.count(pF))
+        return;
+    mObservationsF[pF]=idx;
+
+}
+
+map<Frame*, size_t> MapPoint::GetObservationsF()
+{
+    unique_lock<mutex> lock(mMutexFeatures);
+    return mObservationsF;
+}
+#endif
+
+
 void MapPoint::EraseObservation(KeyFrame* pKF)
 {
     bool bBad=false;
@@ -412,6 +432,10 @@ void MapPoint::SetBadFlag()
         mbBad=true;
         obs = mObservations;
         mObservations.clear();
+#ifdef GBA_FRAME
+//        std::cout<<"mObservationsF clear"<<std::endl;
+        mObservationsF.clear();
+#endif
     }
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
     {
@@ -436,6 +460,9 @@ void MapPoint::Replace(MapPoint* pMP)
 
     int nvisible, nfound;
     map<KeyFrame*,size_t> obs;
+#ifdef GBA_FRAME
+    map<Frame*,size_t> obsF;
+#endif
     {
         unique_lock<mutex> lock1(mMutexFeatures);
         unique_lock<mutex> lock2(mMutexPos);
@@ -444,9 +471,21 @@ void MapPoint::Replace(MapPoint* pMP)
         mbBad=true;
         nvisible = mnVisible;
         nfound = mnFound;
+#ifdef GBA_FRAME
+        obsF = mObservationsF;
+//        std::cout<<"obsF.size:"<<obsF.size()<<std::endl;
+        mObservationsF.clear();
+#endif
         mpReplaced = pMP;
     }
 
+#ifdef GBA_FRAME
+    for(map<Frame*,size_t>::iterator mit=obsF.begin(), mend=obsF.end(); mit!=mend; mit++)
+    {
+        Frame* pF = mit->first;
+        pMP->AddObservationF(pF,mit->second);
+    }
+#endif
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
     {
         // Replace measurement in keyframe

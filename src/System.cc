@@ -197,7 +197,7 @@ System::System(const string &strVocFile, const string &strSettingsFile,const str
         vector<ORB_SLAM2::KeyFrame*> vpKFs = mpMap->GetAllKeyFrames();
         for (vector<ORB_SLAM2::KeyFrame*>::iterator it = vpKFs.begin(); it != vpKFs.end(); ++it) {
             (*it)->SetKFDB(mpKeyFrameDatabase);
-            (*it)->SetORBVocabulary(mpVocabulary);
+            (*it)->SetORBvocabulary(mpVocabulary);
             (*it)->SetMap(mpMap);
             (*it)->ComputeBoW();
             mpKeyFrameDatabase->add(*it);
@@ -516,7 +516,7 @@ void System::LoadMap(const string &filename)
 	{
 		free(bufMap);
 	}
-	cout << endl << filename <<" : Map Loaded!" << endl;
+    cout << endl << filename <<" : Open Map Success!" << endl;
 }
 
 void System::SaveMap(const string &filename)
@@ -537,20 +537,31 @@ void System::SaveMap(const string &filename)
 		free(buf);
 	}
 
-	//ygx
-	//{
-	//	std::ofstream os(filename);
-	//	portable_binary_oarchive oa(os, ::boost::archive::no_header);
-	//	//oa << mpKeyFrameDatabase;
-	//	oa << mpMap;
-	//}
-
 #if defined(PRINT_TRACK_INFO)
 	cout << endl << "Map saved to: " << filename << endl;
 	LOG("Map saved to: %s", filename.c_str());
 #endif
 }
 
+void System::SaveMapPoints(const string &filename)
+{
+    ofstream f;
+    f.open(filename.c_str());
+    vector<MapPoint*> allP = mpMap->GetAllMapPoints();
+    for(int ii = 0 ; ii<allP.size(); ii++)
+    {
+        MapPoint* mp =  allP[ii];
+        if(mp)
+        {
+            if(!mp->isBad())
+            {
+                cv::Mat pos = mp->GetWorldPos();
+                f<<mp->mnId<<" "<<pos.at<float>(0)<<" "<<pos.at<float>(1)<<" "<<pos.at<float>(2)<<std::endl;
+            }
+        }
+    }
+    f.close();
+}
 void System::SaveTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving camera trajectory to " << filename << " ..." << endl;
@@ -725,5 +736,12 @@ void System::GlobalOptimize()
 {
     Optimizer::GlobalBundleAdjustemnt(mpMap,1000);
 }
-
+#ifdef GBA_FRAME
+std::vector<ORB_SLAM2::Frame*> System::GlobalOptimize(int iters,bool bkeepMap,bool bneedfix)
+{
+//    mpTracker->mvAllFrames
+    Optimizer::GlobalBundleAdjustemntF(mpMap, mpTracker->mvAllFrames, bkeepMap, bneedfix, iters);
+    return mpTracker->mvAllFrames;
+}
+#endif
 } //namespace ORB_SLAM

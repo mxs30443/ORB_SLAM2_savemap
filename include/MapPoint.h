@@ -68,6 +68,10 @@ public:
     int Observations();
 
     void AddObservation(KeyFrame* pKF,size_t idx);
+#ifdef GBA_FRAME
+    void AddObservationF(Frame* pF, size_t idx);
+    std::map<Frame*, size_t> GetObservationsF();
+#endif
     void EraseObservation(KeyFrame* pKF);
 
     int GetIndexInKeyFrame(KeyFrame* pKF);
@@ -76,7 +80,7 @@ public:
     void SetBadFlag();
     bool isBad();
 
-    void Replace(MapPoint* pMP);    
+    void Replace(MapPoint* pMP);
     MapPoint* GetReplaced();
 
     void IncreaseVisible(int n=1);
@@ -122,7 +126,7 @@ public:
     // Variables used by loop closing
     long unsigned int mnLoopPointForKF;
     long unsigned int mnCorrectedByKF;
-    long unsigned int mnCorrectedReference;    
+    long unsigned int mnCorrectedReference;
     cv::Mat mPosGBA;
     long unsigned int mnBAGlobalForKF;
 
@@ -131,58 +135,61 @@ public:
 
 protected:    
 
-     // Position in absolute coordinates
-     cv::Mat mWorldPos;
+    // Position in absolute coordinates
+    cv::Mat mWorldPos;
 
-     // Keyframes observing the point and associated index in keyframe
-     std::map<KeyFrame*,size_t> mObservations;
-     //convert point to index
-     std::map<uint64_t, size_t> mObservations_nId;
+    // Keyframes observing the point and associated index in keyframe
+    std::map<KeyFrame*,size_t> mObservations;
+#ifdef GBA_FRAME
+    std::map<Frame*,size_t> mObservationsF;
+#endif
+    //convert point to index
+    std::map<uint64_t, size_t> mObservations_nId;
 
-     // Mean viewing direction
-     cv::Mat mNormalVector;
+    // Mean viewing direction
+    cv::Mat mNormalVector;
 
-     // Best descriptor to fast matching
-     cv::Mat mDescriptor;
+    // Best descriptor to fast matching
+    cv::Mat mDescriptor;
 
-     // Descriptor vector to best matching, added by Harley
-     std::vector<cv::Mat> mvDescriptor;
+    // Descriptor vector to best matching, added by Harley
+    std::vector<cv::Mat> mvDescriptor;
 
-     // Reference KeyFrame
-     KeyFrame* mpRefKF;
+    // Reference KeyFrame
+    KeyFrame* mpRefKF;
 
-     // Tracking counters
-     int mnVisible;
-     int mnFound;
+    // Tracking counters
+    int mnVisible;
+    int mnFound;
 
-     // Bad flag (we do not currently erase MapPoint from memory)
-     bool mbBad;
-     MapPoint* mpReplaced;
+    // Bad flag (we do not currently erase MapPoint from memory)
+    bool mbBad;
+    MapPoint* mpReplaced;
 
-     // Scale invariance distances
-     float mfMinDistance;
-     float mfMaxDistance;
+    // Scale invariance distances
+    float mfMinDistance;
+    float mfMaxDistance;
 
-     Map* mpMap;
+    Map* mpMap;
 
-     //id_map mref_KfId_map;
-     std::pair<uint64_t, bool> mref_KfId_pair;
+    //id_map mref_KfId_map;
+    std::pair<uint64_t, bool> mref_KfId_pair;
 
-     std::mutex mMutexPos;
-     std::mutex mMutexFeatures;
+    std::mutex mMutexPos;
+    std::mutex mMutexFeatures;
 
-     friend class boost::serialization::access;
-     template<class Archive>
-     void serialize(Archive & ar, const unsigned int version)
-     {
-         boost::serialization::split_member(ar, *this, version);
-     }
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        boost::serialization::split_member(ar, *this, version);
+    }
 
-     template<class Archive>
-     void save(Archive & ar, const unsigned int version) const;
+    template<class Archive>
+    void save(Archive & ar, const unsigned int version) const;
 
-     template<class Archive>
-     void load(Archive & ar, const unsigned int version);
+    template<class Archive>
+    void load(Archive & ar, const unsigned int version);
 };
 
 } //namespace ORB_SLAM
@@ -192,59 +199,59 @@ protected:
 BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
 
 namespace boost {
-namespace serialization {
+    namespace serialization {
 
-/*** CV KeyFrame ***/
-template<class Archive>
-void serialize(Archive & ar, cv::KeyPoint & kf, const unsigned int version)
-{
-  ar & kf.angle;
-  ar & kf.class_id;
-  ar & kf.octave;
-  ar & kf.response;
-  ar & kf.size;
-  ar & kf.pt.x;
-  ar & kf.pt.y;
+    /*** CV KeyFrame ***/
+    template<class Archive>
+    void serialize(Archive & ar, cv::KeyPoint & kf, const unsigned int version)
+    {
+        ar & kf.angle;
+        ar & kf.class_id;
+        ar & kf.octave;
+        ar & kf.response;
+        ar & kf.size;
+        ar & kf.pt.x;
+        ar & kf.pt.y;
 
-}
+    }
 
-/*** Mat ***/
-/** Serialization support for cv::Mat */
-template<class Archive>
-void save(Archive & ar, const ::cv::Mat& m, const unsigned int version)
-{
-  size_t elem_size = m.elemSize();
-  size_t elem_type = m.type();
+    /*** Mat ***/
+    /** Serialization support for cv::Mat */
+    template<class Archive>
+    void save(Archive & ar, const ::cv::Mat& m, const unsigned int version)
+    {
+        size_t elem_size = m.elemSize();
+        size_t elem_type = m.type();
 
-  ar & m.cols;
-  ar & m.rows;
-  ar & elem_size;
-  ar & elem_type;
+        ar & m.cols;
+        ar & m.rows;
+        ar & elem_size;
+        ar & elem_type;
 
-  const size_t data_size = m.cols * m.rows * elem_size;
+        const size_t data_size = m.cols * m.rows * elem_size;
 
-  ar & boost::serialization::make_array(m.ptr(), data_size);
-}
+        ar & boost::serialization::make_array(m.ptr(), data_size);
+    }
 
-/** Serialization support for cv::Mat */
-template<class Archive>
-void load(Archive & ar, ::cv::Mat& m, const unsigned int version)
-{
-  int cols, rows;
-  size_t elem_size, elem_type;
+    /** Serialization support for cv::Mat */
+    template<class Archive>
+    void load(Archive & ar, ::cv::Mat& m, const unsigned int version)
+    {
+        int cols, rows;
+        size_t elem_size, elem_type;
 
-  ar & cols;
-  ar & rows;
-  ar & elem_size;
-  ar & elem_type;
+        ar & cols;
+        ar & rows;
+        ar & elem_size;
+        ar & elem_type;
 
-  m.create(rows, cols, elem_type);
-  size_t data_size = m.cols * m.rows * elem_size;
+        m.create(rows, cols, elem_type);
+        size_t data_size = m.cols * m.rows * elem_size;
 
-  ar & boost::serialization::make_array(m.ptr(), data_size);
-}
+        ar & boost::serialization::make_array(m.ptr(), data_size);
+    }
 
-}
+    }
 }
 #endif
 

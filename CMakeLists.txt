@@ -2,17 +2,19 @@ cmake_minimum_required(VERSION 2.8)
 project(RGBDLoc)
 
 IF(NOT CMAKE_BUILD_TYPE)
-#  SET(CMAKE_BUILD_TYPE Debug)
-  SET(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE Debug)
+#  SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -march=native")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
+
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall -march=native ")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -march=native")
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -30,12 +32,16 @@ else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
+# add by mxs
+add_definitions(-DGBA_FRAME)
+#add_definitions(-COMPARE_DEPTH)
+
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
 find_package(OpenCV 3.0 PATHS /opt/opencv3.2/share/OpenCV REQUIRED)
 
 find_package(Eigen3 3.1.0 REQUIRED)
-find_package(Pangolin REQUIRED)
+find_package(Pangolin PATHS /home/mxs/software/Pangolin/build/src REQUIRED)
 
 set(BOOST_PATH /home/mxs/tools/boost_1_63_0)
 
@@ -129,7 +135,7 @@ target_link_libraries(rgbd_my ${PROJECT_NAME})
 #target_link_libraries(mono_euroc ${PROJECT_NAME})
 
 # Build tools
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/)
-add_executable(bin_vocabulary
-tools/bin_vocabulary.cc)
-target_link_libraries(bin_vocabulary ${PROJECT_NAME})
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/)
+#add_executable(bin_vocabulary
+#tools/bin_vocabulary.cc)
+#target_link_libraries(bin_vocabulary ${PROJECT_NAME})

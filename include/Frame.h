@@ -162,7 +162,10 @@ public:
 
     // Camera pose.
     cv::Mat mTcw;
-
+#ifdef GBA_FRAME
+    cv::Mat mTcwGBA;
+//    int a;
+#endif
     // Current and Next Frame id.
     static long unsigned int nNextId;
     long unsigned int mnId;

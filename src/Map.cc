@@ -78,7 +78,7 @@ void Map::save(Archive & ar, const unsigned int version)
     //    ar & *pMapPointReference;
     //});
     ar & const_cast<uint64_t &> (mnMaxKFid);
-
+    ar & const_cast<uint64_t &>(mninit_id);
 //    ar & test_data;
 }
 
@@ -136,7 +136,7 @@ void Map::load(Archive & ar, const unsigned int version)
     }
 
     ar & const_cast<uint64_t &> (mnMaxKFid);
-
+    ar & const_cast<uint64_t &>(mninit_id);
 //    ar & test_data;
 #if defined(PRINT_TRACK_INFO)
 	if (test_data == TEST_DATA)

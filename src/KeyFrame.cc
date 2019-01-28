@@ -795,11 +795,11 @@ KeyFrameDatabase* KeyFrame::GetKFDB(){
     return mpKeyFrameDB;
 }
 
-void KeyFrame::SetORBVocabulary(ORBVocabulary *pORBvocabulary){
+void KeyFrame::SetORBvocabulary(ORBVocabulary *pORBvocabulary){
     mpORBvocabulary = pORBvocabulary;
 }
 
-ORBVocabulary* KeyFrame::GetORBVocabulary(){
+ORBVocabulary* KeyFrame::GetORBvocabulary(){
     return mpORBvocabulary;
 }
 

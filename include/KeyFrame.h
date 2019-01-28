@@ -62,8 +62,8 @@ public:
     void SetKFDB(KeyFrameDatabase* pKFDB);
     KeyFrameDatabase* GetKFDB();
 
-    void SetORBVocabulary(ORBVocabulary* pORBvocabulary);
-    ORBVocabulary* GetORBVocabulary();
+    void SetORBvocabulary(ORBVocabulary* pORBvocabulary);
+    ORBVocabulary* GetORBvocabulary();
 
     void SetConnectedKeyFrameWeights(std::map<KeyFrame*,int> connectedKeyFrameWeights);
     std::map<KeyFrame*,int> GetConnectedKeyFrameWeights();

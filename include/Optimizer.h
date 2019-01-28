@@ -42,6 +42,15 @@ public:
                                  const bool bRobust = true);
     void static GlobalBundleAdjustemnt(Map* pMap, int nIterations=5, bool *pbStopFlag=NULL,
                                        const unsigned long nLoopKF=0, const bool bRobust = true);
+#ifdef GBA_FRAME
+    void static BundleAdjustmentF(const std::vector<Frame*> &vpKF, const std::vector<MapPoint*> &vpMP,
+                           bool bkeepMap = true, bool needfix = false, long unsigned int Fixid=0, int nIterations = 5,
+                           bool *pbStopFlag=NULL,const bool bRobust = true);
+
+    void static GlobalBundleAdjustemntF(Map* pMap,  vector<Frame*> vpKFs, bool bkeepMap = true, bool needfix = false,
+                                        int nIterations=5, bool *pbStopFlag=NULL,const bool bRobust = true);
+#endif
+
     void static LocalBundleAdjustment(KeyFrame* pKF, bool *pbStopFlag, Map *pMap);
     int static PoseOptimization(Frame* pFrame);
 

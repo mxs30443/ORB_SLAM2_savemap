@@ -20,6 +20,7 @@
 
 #include "stdafx.h"
 #include "Frame.h"
+#include "Config.hpp"
 #include "Converter.h"
 #include "ORBmatcher.h"
 #include <thread>
@@ -27,7 +28,7 @@
 namespace ORB_SLAM2
 {
 
-long unsigned int Frame::nNextId=1;
+long unsigned int Frame::nNextId=0;
 bool Frame::mbInitialComputations=true;
 float Frame::cx, Frame::cy, Frame::fx, Frame::fy, Frame::invfx, Frame::invfy;
 float Frame::mnMinX, Frame::mnMinY, Frame::mnMaxX, Frame::mnMaxY;
@@ -56,6 +57,9 @@ Frame::Frame(const Frame &frame)
 
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
+#ifdef GBA_FRAME
+    mTcwGBA = frame.mTcwGBA;
+#endif
 }
 
 
@@ -115,6 +119,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+#ifdef GBA_FRAME
+    mTcwGBA = cv::Mat();
+#endif
 }
 
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
@@ -135,6 +142,38 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
 
     // ORB extraction
     ExtractORB(0,imGray);
+
+#ifdef COMPARE_DEPTH
+    //add by mxs--------------------------
+    std::vector<cv::KeyPoint> mvKeys_tmp = mvKeys;
+    cv::Mat mDescriptors_tmp = mDescriptors.clone();
+    mvKeys.clear();
+
+    int cnt = 0;
+    for(int i=0; i<mvKeys_tmp.size(); i++)
+    {
+        const cv::KeyPoint &kp = mvKeys_tmp[i];
+        const float &v = kp.pt.y;
+        const float &u = kp.pt.x;
+        const float d = imDepth.at<float>(v,u);
+
+        if(d>0 && d <=4.5)
+        {
+            mvKeys.push_back(mvKeys_tmp[i]);
+            mDescriptors_tmp.rowRange(i,i+1).copyTo(mDescriptors.rowRange(cnt,cnt+1));
+            cnt = cnt+1;
+        }
+    }
+    if(cnt == 0)
+    {
+        mvKeys = mvKeys_tmp;
+        mDescriptors = mDescriptors_tmp.clone();
+    }
+    else
+        mDescriptors = mDescriptors.rowRange(0,cnt).clone();
+    //--------------------------
+//    std::cout<<"mvKeys:"<<mvKeys.size()<<" "<<mDescriptors.rows<<std::endl;
+#endif
 
     N = mvKeys.size();
 
@@ -169,6 +208,9 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+#ifdef GBA_FRAME
+    mTcwGBA = cv::Mat();
+#endif
 }
 
 
@@ -226,6 +268,9 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mb = mbf/fx;
 
     AssignFeaturesToGrid();
+#ifdef GBA_FRAME
+    mTcwGBA = cv::Mat();
+#endif
 }
 
 void Frame::AssignFeaturesToGrid()

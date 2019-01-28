@@ -287,6 +287,9 @@ void Tracking::Track()
 
         if(mState!=OK)
             return;
+#ifdef GBA_FRAME
+        mpMap->mninit_id = this->mInitialFrame.mnId;
+#endif
     }
     else
     {
@@ -502,6 +505,22 @@ void Tracking::Track()
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
     }
+#ifdef GBA_FRAME
+//    std::cout<<"GBA_FRAME"<<std::endl;
+    Frame* nowF = new Frame(mCurrentFrame);
+    nowF->mTcwGBA = nowF->mTcw;
+    mvAllFrames.push_back(nowF);
+    for(int ii = 0 ; ii<nowF->mvbOutlier.size();ii++)
+    {
+        if(nowF->mvbOutlier[ii] || !nowF->mvpMapPoints[ii])
+            continue;
+        else
+        {
+            if(!nowF->mvpMapPoints[ii]->isBad())
+                nowF->mvpMapPoints[ii]->AddObservationF(nowF,ii);
+        }
+    }
+#endif
 
 }
 

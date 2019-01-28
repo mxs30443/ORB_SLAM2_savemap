@@ -45,6 +45,191 @@ void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopF
     BundleAdjustment(vpKFs,vpMP,nIterations,pbStopFlag, nLoopKF, bRobust);
 }
 
+#ifdef GBA_FRAME
+void Optimizer::GlobalBundleAdjustemntF(Map* pMap, vector<Frame*> vpKFs, bool bkeepMap, bool bneedfix, int nIterations, bool* pbStopFlag, const bool bRobust)
+{
+//    vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
+
+    vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
+    long unsigned int Fixid = pMap->mninit_id;
+    BundleAdjustmentF(vpKFs,vpMP,bkeepMap,bneedfix,Fixid,nIterations,pbStopFlag, bRobust);
+}
+
+void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<MapPoint *> &vpMP,
+                                 bool bkeepMap, bool bneedfix, long unsigned int Fixid ,int nIterations, bool* pbStopFlag, const bool bRobust)
+{
+    vector<bool> vbNotIncludedMP;
+    vbNotIncludedMP.resize(vpMP.size());
+
+    g2o::SparseOptimizer optimizer;
+    g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
+
+    linearSolver = new g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>();
+
+    g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
+
+    g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    optimizer.setAlgorithm(solver);
+
+    if(pbStopFlag)
+        optimizer.setForceStopFlag(pbStopFlag);
+
+    long unsigned int maxKFid = 0;
+
+    // Set Frame vertices
+    for(size_t i=0; i<vpKFs.size(); i++)
+    {
+        Frame* pF = vpKFs[i];
+
+        g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
+        vSE3->setEstimate(Converter::toSE3Quat(pF->mTcw));
+        vSE3->setId(pF->mnId);
+        vSE3->setFixed(bneedfix && pF->mnId == Fixid);
+        optimizer.addVertex(vSE3);
+        if(pF->mnId>maxKFid)
+            maxKFid=pF->mnId;
+    }
+
+    const float thHuber2D = sqrt(5.99);
+    const float thHuber3D = sqrt(7.815);
+
+    // Set MapPoint vertices
+    for(size_t i=0; i<vpMP.size(); i++)
+    {
+        MapPoint* pMP = vpMP[i];
+        if(pMP->isBad())
+            continue;
+        g2o::VertexSBAPointXYZ* vPoint = new g2o::VertexSBAPointXYZ();
+        vPoint->setEstimate(Converter::toVector3d(pMP->GetWorldPos()));
+        const int id = pMP->mnId+maxKFid+1;
+        vPoint->setId(id);
+        vPoint->setMarginalized(true);
+        vPoint->setFixed(bkeepMap);
+        optimizer.addVertex(vPoint);
+
+       const map<Frame*,size_t> observations = pMP->GetObservationsF();
+
+        int nEdges = 0;
+        //SET EDGES
+        for(map<Frame*,size_t>::const_iterator mit=observations.begin(); mit!=observations.end(); mit++)
+        {
+
+            Frame* pF = mit->first;
+            if(pF->mnId>maxKFid)
+                continue;
+
+            nEdges++;
+
+            const cv::KeyPoint &kpUn = pF->mvKeysUn[mit->second];
+
+            if(pF->mvuRight[mit->second]<0)
+            {
+                Eigen::Matrix<double,2,1> obs;
+                obs << kpUn.pt.x, kpUn.pt.y;
+
+                g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
+
+                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
+                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pF->mnId)));
+                e->setMeasurement(obs);
+                const float &invSigma2 = pF->mvInvLevelSigma2[kpUn.octave];
+                e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
+                if(bRobust)
+                {
+                    g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+                    e->setRobustKernel(rk);
+                    rk->setDelta(thHuber2D);
+                }
+
+                e->fx = pF->fx;
+                e->fy = pF->fy;
+                e->cx = pF->cx;
+                e->cy = pF->cy;
+
+                optimizer.addEdge(e);
+            }
+            else
+            {
+                Eigen::Matrix<double,3,1> obs;
+                const float kp_ur = pF->mvuRight[mit->second];
+                obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
+
+                g2o::EdgeStereoSE3ProjectXYZ* e = new g2o::EdgeStereoSE3ProjectXYZ();
+
+                e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
+                e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pF->mnId)));
+                e->setMeasurement(obs);
+                const float &invSigma2 = pF->mvInvLevelSigma2[kpUn.octave];
+                Eigen::Matrix3d Info = Eigen::Matrix3d::Identity()*invSigma2;
+                e->setInformation(Info);
+
+                if(bRobust)
+                {
+                    g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
+                    e->setRobustKernel(rk);
+                    rk->setDelta(thHuber3D);
+                }
+
+                e->fx = pF->fx;
+                e->fy = pF->fy;
+                e->cx = pF->cx;
+                e->cy = pF->cy;
+                e->bf = pF->mbf;
+
+                optimizer.addEdge(e);
+            }
+        }
+
+        if(nEdges==0)
+        {
+            optimizer.removeVertex(vPoint);
+            vbNotIncludedMP[i]=true;
+        }
+        else
+        {
+            vbNotIncludedMP[i]=false;
+        }
+    }
+
+    // Optimize!
+    optimizer.initializeOptimization();
+    optimizer.optimize(nIterations);
+
+    // Recover optimized data
+
+    //frames
+    for(size_t i=0; i<vpKFs.size(); i++)
+    {
+        Frame* pF = vpKFs[i];
+        g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pF->mnId));
+        g2o::SE3Quat SE3quat = vSE3->estimate();
+        pF->mTcwGBA.create(4,4,CV_32F);
+        Converter::toCvMat(SE3quat).copyTo(pF->mTcwGBA);
+
+    }
+
+    //Points
+    if(!bkeepMap)
+    {
+        for(size_t i=0; i<vpMP.size(); i++)
+        {
+            if(vbNotIncludedMP[i])
+                continue;
+
+            MapPoint* pMP = vpMP[i];
+
+            if(pMP->isBad())
+                continue;
+            g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->mnId+maxKFid+1));
+
+            pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
+            pMP->UpdateNormalAndDepth();
+
+        }
+    }
+
+}
+#endif
 
 void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP,
                                  int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)

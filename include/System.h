@@ -144,7 +144,9 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
     void GlobalOptimize();
-
+#ifdef GBA_FRAME
+    std::vector<ORB_SLAM2::Frame*> GlobalOptimize(int iters,bool bkeepmap = true, bool bneedfix = false);
+#endif
     void loadMapFromByteArray(const void* mapAdd, size_t size);
     int saveMapToByteArray(char * &p);
 private:
