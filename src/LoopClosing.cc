@@ -667,6 +667,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             while(!mpLocalMapper->isStopped() && !mpLocalMapper->isFinished())
             {
+                std::cout<<"wait Local Mapping stop ...\n";
                 usleep(1000);
             }
 
@@ -675,10 +676,21 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             // Correct keyframes starting at map first keyframe
             list<KeyFrame*> lpKFtoCheck(mpMap->mvpKeyFrameOrigins.begin(),mpMap->mvpKeyFrameOrigins.end());
-
+#ifdef GBA_FRAME
+            int num_lpKFtoCheck = lpKFtoCheck.size();
+            int num_ii = 0;
+            map<long unsigned int ,  bool> ischeck;
+#endif
             while(!lpKFtoCheck.empty())
             {
                 KeyFrame* pKF = lpKFtoCheck.front();
+#ifdef GBA_FRAME
+                if(ischeck.count(pKF->mnId))
+                {
+                    lpKFtoCheck.pop_front();
+                    continue;
+                }
+#endif
                 const set<KeyFrame*> sChilds = pKF->GetChilds();
                 cv::Mat Twc = pKF->GetPoseInverse();
                 for(set<KeyFrame*>::const_iterator sit=sChilds.begin();sit!=sChilds.end();sit++)
@@ -697,6 +709,9 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
                 pKF->mTcwBefGBA = pKF->GetPose();
                 pKF->SetPose(pKF->mTcwGBA);
                 lpKFtoCheck.pop_front();
+#ifdef GBA_FRAME
+                ischeck.insert(make_pair(pKF->mnId,true));
+#endif
             }
 
             // Correct MapPoints
@@ -704,6 +719,7 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 
             for(size_t i=0; i<vpMPs.size(); i++)
             {
+                std::cout<<"Correct MapPoints: "<<i<<" / "<< vpMPs.size()<<std::endl;
                 MapPoint* pMP = vpMPs[i];
 
                 if(pMP->isBad())

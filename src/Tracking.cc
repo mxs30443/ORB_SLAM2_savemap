@@ -508,7 +508,7 @@ void Tracking::Track()
 #ifdef GBA_FRAME
 //    std::cout<<"GBA_FRAME"<<std::endl;
     Frame* nowF = new Frame(mCurrentFrame);
-    nowF->mTcwGBA = nowF->mTcw;
+    nowF->mTcwGBA = cv::Mat::zeros(4,4,CV_32F);
     mvAllFrames.push_back(nowF);
     for(int ii = 0 ; ii<nowF->mvbOutlier.size();ii++)
     {

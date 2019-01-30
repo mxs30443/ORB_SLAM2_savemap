@@ -219,7 +219,9 @@ System::System(const string &strVocFile, const string &strSettingsFile,const str
 
     }
     cout << endl << mpMap <<" : is the created map address" << endl;
-
+#ifdef GBA_FRAME
+    Frame::nNextId = mpMap->mNextFrameId;
+#endif
     //Create Drawers. These are used by the Viewer
     mpFrameDrawer = new FrameDrawer(mpMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
@@ -521,6 +523,7 @@ void System::LoadMap(const string &filename)
 
 void System::SaveMap(const string &filename)
 {
+    mpMap->mNextFrameId = mpTracker->mCurrentFrame.mnId+2;
 	char* buf = NULL;
 	int len = saveMapToByteArray(buf);
 	if (len > 0 && buf)
@@ -737,10 +740,10 @@ void System::GlobalOptimize()
     Optimizer::GlobalBundleAdjustemnt(mpMap,1000);
 }
 #ifdef GBA_FRAME
-std::vector<ORB_SLAM2::Frame*> System::GlobalOptimize(int iters,bool bkeepMap,bool bneedfix)
+std::vector<ORB_SLAM2::Frame*> System::GlobalOptimize(int iters,bool bkeepMapPoints,bool bneedfix)
 {
 //    mpTracker->mvAllFrames
-    Optimizer::GlobalBundleAdjustemntF(mpMap, mpTracker->mvAllFrames, bkeepMap, bneedfix, iters);
+    Optimizer::GlobalBundleAdjustemntF(mpMap, mpTracker->mvAllFrames, bkeepMapPoints, bneedfix, iters);
     return mpTracker->mvAllFrames;
 }
 #endif

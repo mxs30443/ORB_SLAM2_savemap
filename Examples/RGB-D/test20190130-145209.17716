@@ -1,0 +1,4 @@
+Log file created at: 2019/01/30 14:52:09
+Running on machine: mxs-Z370
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+I0130 14:52:09.057488 17716 Map.cc:76] Map load:

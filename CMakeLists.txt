@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(RGBDLoc)
+project(RGBD_SpritarLoc)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Debug)
@@ -99,15 +99,16 @@ ${BOOST_LIBRARIES}
 ${Pangolin_LIBRARIES}
 ${PROJECT_SOURCE_DIR}/Thirdparty/DBoW2/lib/libDBoW2.so
 ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o.so
+glog
 )
 
 # Build examples
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
 
-add_executable(rgbd_my
-Examples/RGB-D/rgbd_tum.cc)
-target_link_libraries(rgbd_my ${PROJECT_NAME})
+add_executable(rgbd_SpritarLoc
+Examples/RGB-D/rgbd_SpritarLoc.cc)
+target_link_libraries(rgbd_SpritarLoc ${PROJECT_NAME})
 
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 

@@ -610,9 +610,7 @@ void KeyFrame::SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames)
         }
         if (kf_found == false)
         {
-#if defined(PRINT_TRACK_INFO)
-            cout << endl << "Parent KF [" << mparent_KfId_map.map_id <<"] not found for KF " << mnId << endl;
-#endif
+            LOG(INFO)<< endl << "Parent KF [" << mparent_KfId_map.map_id <<"] not found for KF " << mnId << endl;
             //mpParent = new KeyFrame();
             //mpParent->mbBad = true;
             mpParent = static_cast<KeyFrame*>(NULL);
@@ -654,10 +652,8 @@ void KeyFrame::SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames)
                     break;
                 }
             }
-#if defined(PRINT_TRACK_INFO)
 	    if (kf_found == false)
-	        cout << endl << "Child [" << id << "] not found for KF " << mnId << endl;
-#endif
+            LOG(INFO) << endl << "Child [" << id << "] not found for KF " << mnId << endl;
         }
 
     }
@@ -697,10 +693,9 @@ void KeyFrame::SetSpanningTree(std::vector<KeyFrame*> vpKeyFrames)
                     break;
                 }
             }
-#if defined(PRINT_TRACK_INFO)
 			if (kf_found == false)
-                cout << endl << "Loop Edge [" << id <<"] not found for KF " << mnId << endl;
-#endif
+                LOG(INFO)<< endl << "Loop Edge [" << id <<"] not found for KF " << mnId << endl;
+
         }
 
     }
@@ -770,7 +765,7 @@ void KeyFrame::SetGridParams(std::vector<KeyFrame*> vpKeyFrames)
             }
             if (Kf_found == false)
             {
-                //cout << "[" << id <<"] not found in KF " << mnId << endl;
+                LOG(INFO)<< "[" << id <<"] not found in KF " << mnId << endl;
 
             }
 

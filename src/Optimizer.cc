@@ -46,17 +46,17 @@ void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopF
 }
 
 #ifdef GBA_FRAME
-void Optimizer::GlobalBundleAdjustemntF(Map* pMap, vector<Frame*> vpKFs, bool bkeepMap, bool bneedfix, int nIterations, bool* pbStopFlag, const bool bRobust)
+void Optimizer::GlobalBundleAdjustemntF(Map* pMap, vector<Frame*> vpKFs, bool bkeepMapPoints, bool bneedfix, int nIterations, bool* pbStopFlag, const bool bRobust)
 {
 //    vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
 
     vector<MapPoint*> vpMP = pMap->GetAllMapPoints();
     long unsigned int Fixid = pMap->mninit_id;
-    BundleAdjustmentF(vpKFs,vpMP,bkeepMap,bneedfix,Fixid,nIterations,pbStopFlag, bRobust);
+    BundleAdjustmentF(vpKFs,vpMP,bkeepMapPoints,bneedfix,Fixid,nIterations,pbStopFlag, bRobust);
 }
 
 void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<MapPoint *> &vpMP,
-                                 bool bkeepMap, bool bneedfix, long unsigned int Fixid ,int nIterations, bool* pbStopFlag, const bool bRobust)
+                                 bool bkeepMapPoints, bool bneedfix, long unsigned int Fixid ,int nIterations, bool* pbStopFlag, const bool bRobust)
 {
     vector<bool> vbNotIncludedMP;
     vbNotIncludedMP.resize(vpMP.size());
@@ -80,11 +80,16 @@ void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<Map
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         Frame* pF = vpKFs[i];
-
+        if(pF->mTcw.empty())
+            continue;
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
         vSE3->setEstimate(Converter::toSE3Quat(pF->mTcw));
         vSE3->setId(pF->mnId);
-        vSE3->setFixed(bneedfix && pF->mnId == Fixid);
+        if(pF->mnId == Fixid)
+            vSE3->setFixed(bneedfix);
+        else
+            vSE3->setFixed(false);
+//        vSE3->setFixed(false);
         optimizer.addVertex(vSE3);
         if(pF->mnId>maxKFid)
             maxKFid=pF->mnId;
@@ -104,7 +109,7 @@ void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<Map
         const int id = pMP->mnId+maxKFid+1;
         vPoint->setId(id);
         vPoint->setMarginalized(true);
-        vPoint->setFixed(bkeepMap);
+        vPoint->setFixed(bkeepMapPoints);
         optimizer.addVertex(vPoint);
 
        const map<Frame*,size_t> observations = pMP->GetObservationsF();
@@ -201,6 +206,8 @@ void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<Map
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         Frame* pF = vpKFs[i];
+        if(pF->mTcw.empty())
+            continue;
         g2o::VertexSE3Expmap* vSE3 = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(pF->mnId));
         g2o::SE3Quat SE3quat = vSE3->estimate();
         pF->mTcwGBA.create(4,4,CV_32F);
@@ -209,7 +216,7 @@ void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<Map
     }
 
     //Points
-    if(!bkeepMap)
+    if(!bkeepMapPoints)
     {
         for(size_t i=0; i<vpMP.size(); i++)
         {
@@ -222,6 +229,7 @@ void Optimizer::BundleAdjustmentF(const vector<Frame *> &vpKFs, const vector<Map
                 continue;
             g2o::VertexSBAPointXYZ* vPoint = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(pMP->mnId+maxKFid+1));
 
+//            std::cout<<"Mp:"<<pMP->GetWorldPos()<<"-----"<<Converter::toCvMat(vPoint->estimate())<<std::endl;
             pMP->SetWorldPos(Converter::toCvMat(vPoint->estimate()));
             pMP->UpdateNormalAndDepth();
 

@@ -34,52 +34,40 @@ template<class Archive>
 void Map::save(Archive & ar, const unsigned int version)
 {
     unique_lock<mutex> lock(mMutexMap);
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}Map save:" << endl;
-	LOG("Map save:");
-#endif
-
 //    unsigned int test_data = TEST_DATA;
     int nItems = mspMapPoints.size();
     ar & nItems;
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mspMapPoints size = " << nItems << endl;
-	LOG("mspMapPoints size = %d", nItems);
-#endif
+
+    LOG(INFO)<<"mspMapPoints size = "<<nItems;
+
 
     std::for_each(mspMapPoints.begin(), mspMapPoints.end(), [&ar](MapPoint* pMapPoint) {
         ar & *pMapPoint;
     });
 
     nItems = mspKeyFrames.size();
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mspKeyFrames size = " << nItems << endl;
-	LOG("mspKeyFrames size = %d", nItems);
-#endif
+
+    LOG(INFO)<<"mspKeyFrames size = "<<nItems;
+
     ar & nItems;
     std::for_each(mspKeyFrames.begin(), mspKeyFrames.end(), [&ar](KeyFrame* pKeyFrame) {
         ar & *pKeyFrame;
     });
 
     nItems = mvpKeyFrameOrigins.size();
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mvpKeyFrameOrigins size = " << nItems << endl;
-	LOG("mvpKeyFrameOrigins size = %d", nItems);
-#endif
+
+    LOG(INFO)<<"mvpKeyFrameOrigins size = "<<nItems;
+
     ar & nItems;
     std::for_each(mvpKeyFrameOrigins.begin(), mvpKeyFrameOrigins.end(), [&ar](KeyFrame* pKeyFrameOrigin) {
         ar & *pKeyFrameOrigin;
     });
-    // Pertaining to map drawing
-    //nItems = mvpReferenceMapPoints.size();
-    //cout << "$${INFO}mvpReferenceMapPoints size = %d " << nItems << endl;
-    //ar & nItems;
-    //std::for_each(mvpReferenceMapPoints.begin(), mvpReferenceMapPoints.end(), [&ar](MapPoint* pMapPointReference) {
-    //    ar & *pMapPointReference;
-    //});
+
     ar & const_cast<uint64_t &> (mnMaxKFid);
     ar & const_cast<uint64_t &>(mninit_id);
-//    ar & test_data;
+#ifdef GBA_FRAME
+    ar & const_cast<uint64_t &>(mNextFrameId);
+#endif
 }
 
 template<class Archive>
@@ -87,18 +75,13 @@ void Map::load(Archive & ar, const unsigned int version)
 {
     unique_lock<mutex> lock(mMutexMap);
 //    unsigned int test_data;
+    LOG(INFO)<<"Map load:";
 
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}Map load:" << endl;
-	LOG("Map load:");
-#endif
 
     int nItems;
     ar & nItems;
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mspMapPoints size = " << nItems << endl;
-	LOG("mspMapPoints size = %d", nItems);
-#endif
+    LOG(INFO)<<"mspMapPoints size = "<<nItems;
+
 
     for (int i = 0; i < nItems; ++i) {
 
@@ -108,13 +91,8 @@ void Map::load(Archive & ar, const unsigned int version)
     }
 
     ar & nItems;
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mspKeyFrames size = " << nItems << endl;
-	LOG("mspKeyFrames size = %d", nItems);
-#endif
-
+    LOG(INFO)<<"mspKeyFrames size = "<< nItems;
     for (int i = 0; i < nItems; ++i) {
-
         KeyFrame* pKeyFrame = new KeyFrame;
         ar & *pKeyFrame;
         mspKeyFrames.insert(pKeyFrame);
@@ -122,33 +100,18 @@ void Map::load(Archive & ar, const unsigned int version)
 
 
     ar & nItems;
-#if defined(PRINT_TRACK_INFO)
-	cout << "{INFO}mvpKeyFrameOrigins size = " << nItems << endl;
-	LOG("mvpKeyFrameOrigins size = %d", nItems);
-#endif
-
+    LOG(INFO)<<"mvpKeyFrameOrigins size = "<<nItems;
     for (int i = 0; i < nItems; ++i) {
-
         KeyFrame* pKeyFrame = new KeyFrame;
         ar & *pKeyFrame;
         /* TODO : VerifyHere*/
-        mvpKeyFrameOrigins.push_back(*mspKeyFrames.begin());
+        mvpKeyFrameOrigins.push_back(pKeyFrame);
     }
 
     ar & const_cast<uint64_t &> (mnMaxKFid);
     ar & const_cast<uint64_t &>(mninit_id);
-//    ar & test_data;
-#if defined(PRINT_TRACK_INFO)
-	if (test_data == TEST_DATA)
-	{
-	    cout << ">>Map Loading Validated as True" << endl;
-	    LOG("Map Loading Validated as True");
-	}
-	else
-	{
-	    cout << "ERROR Map Loading Validated as False: Got -" << test_data << " :( Check Load Save sequence" << endl;
-	    LOG("Map Loading Validated as False: 0x%08x", test_data);
-	}
+#ifdef GBA_FRAME
+    ar & const_cast<uint64_t &>(mNextFrameId);
 #endif
 }
 

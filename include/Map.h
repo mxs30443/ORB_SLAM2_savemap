@@ -57,7 +57,9 @@ public:
     long unsigned  KeyFramesInMap();
 
     long unsigned int GetMaxKFid();
-
+#ifdef GBA_FRAME
+    long unsigned int mNextFrameId;
+#endif
     void clear();
 
     vector<KeyFrame*> mvpKeyFrameOrigins;
